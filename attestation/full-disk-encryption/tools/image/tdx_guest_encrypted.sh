@@ -9,7 +9,38 @@ IMG_URL=https://cloud-images.ubuntu.com/jammy/current
 CLOUD_IMG=jammy-server-cloudimg-amd64.img
 TD_IMG=td-guest-ubuntu-22.04.qcow2
 TMP_IMG=ubuntu-22.04.qcow2
-REPO_LIST="deb [trusted=yes] /url/of/repo jammy/amd64/"
+TDX_REPO_URL="/srv/guest_repo"
+ROOT_PASS="123456"
+
+usage() {
+    cat << EOM
+Usage: $(basename "$0") [OPTION]...
+  -p <guest root password>          Default is 123456, recommend changing it
+  -k <disk encryption key file>     Default is key under current directory
+  -u <guest TDX package repo>       Default is local repo /srv/guest_repo
+  -h                                Show this help
+EOM
+}
+
+process_args() {
+    while getopts ":k:p:u:" option; do
+        case "$option" in
+            p) ROOT_PASS=$OPTARG;;
+            k) KEY=$OPTARG;;
+            u) TDX_REPO_URL=$OPTARG;;
+            h) usage
+               exit 0
+               ;;
+            *)
+               echo "Invalid option '-$OPTARG'"
+               usage
+               exit 1
+               ;;
+        esac
+    done
+}
+
+process_args "$@"
 
 if ! command -v "virt-customize" ; then
     echo "virt-customize not found, please install libguestfs-tools"
@@ -31,8 +62,11 @@ fi
 cp ${CLOUD_IMG} ${TD_IMG}
 cp ${CLOUD_IMG} ${TMP_IMG}
 
+# Set repo list
+REPO_LIST="deb [trusted=yes] ${TDX_REPO_URL} jammy/amd64/"
+
 # Setup guest environments
-virt-customize -a ${TMP_IMG}  --root-password password:123456
+virt-customize -a ${TMP_IMG}  --root-password password:${ROOT_PASS}
 ARGS=" -a ${TMP_IMG} -v"
 ARGS+=" --copy-in /etc/environment:/etc"
 ARGS+=" --copy-in netplan.yaml:/etc/netplan/"
@@ -41,7 +75,7 @@ ARGS+=" --edit '/etc/ssh/sshd_config:s/PasswordAuthentication no/PasswordAuthent
 ARGS+=" --run-command 'ssh-keygen -A'"
 ARGS+=" --run-command 'systemctl mask pollinate.service'"
 ARGS+=" --run-command 'echo ${REPO_LIST} | tee /etc/apt/sources.list.d/intel-tdx.list'"
-#ARGS+=" --run-command 'apt update && apt install -y linux-image-unsigned-6.2.0-mvp*'"
+ARGS+=" --run-command 'apt update && apt install -y linux-image-unsigned-6.2.0-mvp*'"
 echo "${ARGS}"
 eval virt-customize "${ARGS}"
 
