@@ -1,3 +1,0 @@
-[submodule "attestation/full-disk-encryption/SGXDataCenterAttestationPrimitives"]
-	path = attestation/full-disk-encryption/SGXDataCenterAttestationPrimitives
-	url = https://github.com/intel/SGXDataCenterAttestationPrimitives.git
