@@ -1,7 +1,7 @@
 use cryptsetup_rs::{open, CryptDevice, LuksCryptDevice};
 use log::info;
 
-pub const KEY_LENGTH: usize = 256;
+pub const KEY_LENGTH: usize = 32;
 
 pub fn crypt_setup(root: String, name: String, key: &[u8]) {
     let mut _dev = open(root.clone())

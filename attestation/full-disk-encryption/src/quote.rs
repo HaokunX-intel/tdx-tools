@@ -2,9 +2,10 @@ use crate::td_report::TDReport;
 use anyhow::{anyhow, Ok, Result};
 use uuid::Uuid;
 
-pub fn retrieve_quote() -> Result<(Vec<u8>, Uuid)> {
+pub fn retrieve_quote(key_pub_sha512sum: [u8;64]) -> Result<Vec<u8>> {
     // 1. tdreport_data
-    let report_data = tdx_attest_rs::tdx_report_data_t { d: [0u8; 64usize] };
+    
+    let report_data = tdx_attest_rs::tdx_report_data_t { d: key_pub_sha512sum };
 
     // 2.1 tdreport
     let mut tdx_report = tdx_attest_rs::tdx_report_t { d: [0; 1024usize] };
@@ -16,7 +17,7 @@ pub fn retrieve_quote() -> Result<(Vec<u8>, Uuid)> {
 
     // 2.2 uuid
     let td_info = TDReport::new(tdx_report.d).td_info;
-    let id = Uuid::new_v5(&Uuid::NAMESPACE_URL, &td_info.get_mrownerconfig());
+    let _id = Uuid::new_v5(&Uuid::NAMESPACE_URL, &td_info.get_mrownerconfig());
 
     // 3. qoute
     let mut selected_att_key_id = tdx_attest_rs::tdx_uuid_t { d: [0; 16usize] };
@@ -32,5 +33,5 @@ pub fn retrieve_quote() -> Result<(Vec<u8>, Uuid)> {
     let quote_bytes = quote.expect("Failed to parse the quote");
     println!("TDX Quote Retrieved!");
 
-    Ok((quote_bytes, id))
+    Ok(quote_bytes)
 }
