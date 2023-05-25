@@ -92,6 +92,7 @@ Usage: $(basename "$0") [OPTION]...
   -q [tdvmcall|vsock]       Support for TD quote using tdvmcall or vsock
   -c <number>               Number of CPUs, default is 1
   -r <root partition>       root partition for direct boot, default is /dev/vda1
+  -w <sha384 hex string>    pass customiszed 48*2 bytes MROWNERCONFIG to the vm, only support td
   -v                        Flag to enable vsock
   -d                        Flag to enable "debug=on" for GDB guest
   -s                        Flag to use serial console instead of HVC console
@@ -109,7 +110,7 @@ warn() {
 }
 
 process_args() {
-    while getopts ":i:k:t:b:p:f:o:a:m:vdshq:c:r:" option; do
+    while getopts ":i:k:t:b:p:f:o:a:m:vdshq:c:r:w:" option; do
         case "$option" in
             i) GUEST_IMG=$OPTARG;;
             k) KERNEL=$OPTARG;;
@@ -125,6 +126,7 @@ process_args() {
             q) QUOTE_TYPE=$OPTARG;;
             c) CPUS=$OPTARG;;
             r) ROOT_PARTITION=$OPTARG;;
+            w) MROWNERCONFIG=$OPTARG;;
             h) usage
                exit 0
                ;;
@@ -211,6 +213,9 @@ process_args() {
             QEMU_CMD+=" -object tdx-guest,sept-ve-disable,id=tdx"
             if [[ ${QUOTE_TYPE} == "tdvmcall" ]]; then
                 QEMU_CMD+=",quote-generation-service=vsock:2:4050"
+            fi
+            if [[ -n ${MROWNERCONFIG} ]]; then
+                QEMU_CMD+=",mrownerconfig=${MROWNERCONFIG}"
             fi
             if [[ ${DEBUG} == true ]]; then
                 QEMU_CMD+=",debug=on"
@@ -307,6 +312,9 @@ process_args() {
     fi
     if [[ -n ${QUOTE_TYPE} ]]; then
         echo "Quote type        : ${QUOTE_TYPE}"
+    fi
+    if [[ -n ${MROWNERCONFIG} ]]; then
+        echo "MROWNERCONFIG     : ${MROWNERCONFIG}"
     fi
     echo "========================================="
 }
