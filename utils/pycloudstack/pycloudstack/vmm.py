@@ -328,6 +328,16 @@ class VMMLibvirt(VMMBase):
             except (OSError, IOError):
                 LOG.warning("Fail to delete Virt XML %s", self._xml.filepath)
 
+    def migrate3(self, uri: str, params: str, flags: int):
+        # 1. connect to destination host
+        dconn = libvirt.open(f'qemu://{uri}/system');
+        
+        # 2. get tdvm domain
+        dom = self._get_domain()
+        # 3. migrate3(self, dconn, params, flags=0):
+        if dom is not None and dconn is not None:
+            dom.migrate3(dconn, params, flags)
+
     def delete_log(self):
         """
         Delete VM log file.
