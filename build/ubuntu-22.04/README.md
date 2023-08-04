@@ -3,7 +3,7 @@
 
 Please run build script in Docker container via `./pkg-builder` to isolate the
 build environment from the linux host. So you can build the TDX ubuntu packages
-on any Linux OS. `./pkg-builder <build-script>` will automatically create a
+on any Linux OS. `./pkg-builder -r <build-script>` will automatically create a
 Docker image named `pkg-builder-ubuntu-22.04` and start a container to run `<build-script>`
 
 ## Setup Docker
@@ -19,16 +19,21 @@ then restart docker service, or logout and login current user to take effect.
 ```
 cd tdx-tools/build/ubuntu-22.04
 
-./pkg-builder build-repo.sh
+./pkg-builder -r build-repo.sh
 ```
 
 `build-repo.sh` will build host packages into host_repo/ and guest packages into guest_repo/ .
+
+If the builder container image "pkg-builder-ubuntu-22.04" has been created after first running, using option `-e` to skip the container image building step.
+```
+./pkg-builder -r build-repo.sh -e
+```
 
 2. Build individual package
 
 
 ```
-./pkg-builder intel-mvp-ovmf/build.sh
+./pkg-builder -r intel-mvp-ovmf/build.sh
 ```
 
 ## Install packages
