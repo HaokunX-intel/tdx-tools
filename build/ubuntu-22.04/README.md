@@ -1,8 +1,10 @@
 
 # Build TDX Stack on Ubuntu 22.04
 
-For Ubuntu it also supports building in Docker container to isolate the build environment from the linux host.
-`./pkg-builder <build-script>` will create a Docker image named `pkg-builder-ubuntu-22.04` and start a container to run the build script.
+Please run build script in Docker container via `./pkg-builder` to isolate the
+build environment from the linux host. So you can build the TDX ubuntu packages
+on any Linux OS. `./pkg-builder -r <build-script>` will automatically create a
+Docker image named `pkg-builder-ubuntu-22.04` and start a container to run `<build-script>`
 
 ## Build requirements
 
@@ -24,23 +26,45 @@ Run it in docker container using `pkg-builder`.
 
 ```
 cd tdx-tools/build/ubuntu-22.04
-./pkg-builder build-repo.sh
+
+./pkg-builder -r build-repo.sh
 ```
 
-If you need to build some packages separately, run `build.sh` in each subdirectory.
+`build-repo.sh` will build host packages into host_repo/ and guest packages into guest_repo/ .
+
+If the builder container image "pkg-builder-ubuntu-22.04" has been created after first running, using option `-e` to skip the container image building step.
+```
+./pkg-builder -r build-repo.sh -e
+```
+
+2. Build individual package
+
 
 ```
-./pkg-builder intel-mvp-ovmf/build.sh
+./pkg-builder -s intel-mvp-ovmf/build.sh
 ```
 
 ## Install TDX host packages
 
 ```
 cd host_repo
-sudo apt -y --allow-downgrades install ./*.deb
+sudo apt -y --allow-downgrades install ./jammy/all/*.deb
+sudo apt -y --allow-downgrades install ./jammy/amd64/*.deb
 ```
 
 Please skip the warning message below, or eliminate it by installing local packages from `/tmp/` .
 
 `Download is performed unsandboxed as root as file as file ... couldn't be accessed by user '_apt'. - pkgAcquire::Run (13: Permission denied)`
 
+You can also install packages for TDX guest using similar steps after copying the
+whole guest packages into TDX guest VM.
+
+Another way, which supports configuring a local apt repository. Take `host_repo` as an example:
+
+```
+cp host_repo /tmp/ -fr
+cat > /etc/apt/sources.list.d/tdx-local.list << EOL
+deb [trusted=yes] file:///tmp/host_repo / jammy/all/
+deb [trusted=yes] file:///tmp/host_repo / jammy/amd64/
+EOL
+```
