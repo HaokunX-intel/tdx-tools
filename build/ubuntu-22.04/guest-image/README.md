@@ -123,3 +123,11 @@ Optional
   ```
   sudo ./create-ubuntu-image.sh -r ../guest_repo/ -f -o mytest.qcow2 -u tdx -p changeme -n tdx-guest
   ```
+
+5. Install image with test suite
+
+  ```
+  sudo ./create-ubuntu-image.sh -d -f -r ${GUEST_REPO} -t -e ${HOST_REPO}
+  ```
+  The option `-t` helps to install test suite in the guest image. The option `-e` helps to specify a host repo to install `qemu-guest-agent`. The option `-d` opens the debug mode, if you use `root` user of guest, the option must be added.
+

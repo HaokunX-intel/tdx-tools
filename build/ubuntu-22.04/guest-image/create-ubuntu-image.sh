@@ -238,11 +238,25 @@ install_tdx_measure_tool() {
 }
 
 
+
+
 prepare_repos() {
+    # guest repo
     if [[ ${GUEST_REPO} != 'http:'* ]] && [[ ${GUEST_REPO} != 'https:'* ]] && [[ ${GUEST_REPO} != 'ftp:'* ]];then
         virt-customize -a /tmp/${GUEST_IMG} \
             --copy-in ${GUEST_REPO}:/srv/
     fi
+
+    # host repo
+    echo $HOST_REPO
+    if [[ ${TEST_SUITE} == "true" ]]; then
+        if [[ ${HOST_REPO} != 'http:'* ]] && [[ ${HOST_REPO} != 'https:'* ]] && [[ ${HOST_REPO} != 'ftp:'* ]];then
+            virt-customize -a /tmp/${GUEST_IMG} \
+                --copy-in ${HOST_REPO}:/srv/
+        fi
+    fi
+
+    # repo auth
     if [[ ! -z ${AUTH_FILE} ]]; then
         virt-customize -a /tmp/${GUEST_IMG} \
             --copy-in ${AUTH_FILE}:/etc/apt/auth.conf.d/
@@ -253,7 +267,7 @@ create_user_data() {
     GUEST_REPO_NAME=""
     guest_repo_source=""
     if [[ ${GUEST_REPO} == 'http:'* ]] || [[ ${GUEST_REPO} == 'https:'* ]] || [[ ${GUEST_REPO} == 'ftp:'* ]]; then 
-        GUEST_REPO_NAME=$(basename realpath ${GUEST_REPO})
+        GUEST_REPO_NAME=$(basename ${GUEST_REPO})
         guest_repo_source='deb [trusted=yes] '$GUEST_REPO'/ jammy/all/\ndeb [trusted=yes] '$GUEST_REPO'/ jammy/amd64/'
     else
         GUEST_REPO_NAME=$(basename $(realpath ${GUEST_REPO}))
@@ -263,6 +277,7 @@ create_user_data() {
         KERNEL_VERSION=$(echo ${KERNEL_VERSION#linux-image-unsigned-})
     fi
 
+    # basic cloud-config
     yq "
     .apt.sources.\"$GUEST_REPO_NAME.list\".source=\"$guest_repo_source\" |
     .packages[0]=\"linux-image-unsigned-$KERNEL_VERSION\" |
@@ -273,74 +288,124 @@ create_user_data() {
     " "${CURR_DIR}"/cloud-init-data/user-data-basic/cloud-config-base-template.yaml > \
     "${CURR_DIR}"/cloud-init-data/cloud-config-base.yaml
 
+    # test suite cloud
+    if [[ ${TEST_SUITE} == "true" ]]; then
+        HOST_REPO_NAME=""
+        host_repo_source=""
+        if [[ ${HOST_REPO} == 'http:'* ]] || [[ ${HOST_REPO} == 'https:'* ]] || [[ ${HOST_REPO} == 'ftp:'* ]]; then 
+            HOST_REPO_NAME=$(basename ${HOST_REPO})
+            host_repo_source='deb [trusted=yes] '$HOST_REPO'/ jammy/all/\ndeb [trusted=yes] '$HOST_REPO'/ jammy/amd64/'
+        else
+            HOST_REPO_NAME=$(basename $(realpath ${HOST_REPO}))
+            host_repo_source='deb [trusted=yes] file:/srv/'$HOST_REPO_NAME'/ jammy/all/\ndeb [trusted=yes] file:/srv/'$HOST_REPO_NAME'/ jammy/amd64/'
+        fi
+
+        yq "
+        .apt.sources.\"$HOST_REPO_NAME.list\".source=\"$host_repo_source\"
+        " "${CURR_DIR}"/cloud-init-data/user-data-customized/cloud-config-test-suite-template.yaml > \
+        "${CURR_DIR}"/cloud-init-data/cloud-config-test-suite.yaml
+
+        cloud-init devel make-mime \
+            -a ./cloud-init-data/cloud-config-base.yaml:cloud-config \
+            -a ./cloud-init-data/cloud-config-test-suite.yaml:cloud-config > \
+            ./cloud-init-data/user-data
+        
+        return 
+    fi
+
 
     # mergo multi-part input
+    # default basic user-data
     cloud-init devel make-mime \
-        -a ./cloud-init-data/cloud-config-base.yaml:cloud-config\
-        > ./cloud-init-data/user-data
-
-    # HOST_REPO_NAME=$(basename $(realpath ${HOST_REPO}))
-
-    # cloud-init devel make-mime \
-    #     -a ./cloud-init-data/user-data-basic/cloud-config-base.yaml:cloud-config \
-    #     -a ./cloud-init-data/user-data-customized/cloud-config-test-suite.yaml:cloud-config \
-    #     > ./cloud-init-data/user-data
+        -a ./cloud-init-data/cloud-config-base.yaml:cloud-config > \
+        ./cloud-init-data/user-data
 }
 
 
 install_test_suite() {
-    
+    if [[ ${TEST_SUITE} != "true" ]]; then
+        return
+    fi
 
-    # 1. install docker
-    # virt-customize -a /tmp/${GUEST_IMG} \
-    #     --run ./cloud-init-data/init-scripts/script-test-suite-docker.sh
+    #1. install docker
+    virt-customize -a /tmp/${GUEST_IMG} \
+        --run ./cloud-init-data/init-scripts/test-suite-install-docker.sh
 
-    # 2. download data
-    # mkdir -p ./download
-    # if [[ ! -f ./download/dien_bf16_pretrained_opt_model.pb ]]; then
-    #     wget -P ./download https://storage.googleapis.com/intel-optimized-tensorflow/models/v2_5_0/dien_bf16_pretrained_opt_model.pb 
-    # fi
-    # if [[ ! -f ./download/dien_fp32_static_rnn_graph.pb ]]; then
-    #     wget -P ./download https://storage.googleapis.com/intel-optimized-tensorflow/models/v2_5_0/dien_fp32_static_rnn_graph.pb 
-    # fi
+    #2. download data
+    mkdir -p ./download
+    if [[ ! -f ./download/dien_bf16_pretrained_opt_model.pb ]]; then
+        wget -P ./download https://storage.googleapis.com/intel-optimized-tensorflow/models/v2_5_0/dien_bf16_pretrained_opt_model.pb 
+    fi
+    if [[ ! -f ./download/dien_fp32_static_rnn_graph.pb ]]; then
+        wget -P ./download https://storage.googleapis.com/intel-optimized-tensorflow/models/v2_5_0/dien_fp32_static_rnn_graph.pb 
+    fi
     
-    # mkdir -p ./download/dien
-    # if [[ ! -f ./download/data.tar.gz ]]; then
-    #     wget -P ./download https://zenodo.org/record/3463683/files/data.tar.gz
-    #     tar -C ./download/ -jxvf ./download/data.tar.gz
-    #     mv ./download/data/* ./download/dien
-    # fi
+    mkdir -p ./download/dien
+    if [[ ! -f ./download/data.tar.gz ]]; then
+        wget -P ./download https://zenodo.org/record/3463683/files/data.tar.gz
+        tar -C ./download/ -jxvf ./download/data.tar.gz
+        mv ./download/data/* ./download/dien
+    fi
 
-    # if [[ ! -f ./download/data1.tar.gz ]]; then
-    #     wget -P ./download https://zenodo.org/record/3463683/files/data1.tar.gz
-    #     tar -C ./download/ -jxvf ./download/data1.tar.gz
-    #     mv ./download/data1/* ./download/dien
-    # fi
+    if [[ ! -f ./download/data1.tar.gz ]]; then
+        wget -P ./download https://zenodo.org/record/3463683/files/data1.tar.gz
+        tar -C ./download/ -jxvf ./download/data1.tar.gz
+        mv ./download/data1/* ./download/dien
+    fi
 
-    # if [[ ! -f ./download/data2.tar.gz ]]; then
-    #     wget -P ./download https://zenodo.org/record/3463683/files/data2.tar.gz
-    #     tar -C ./download/ -jxvf ./download/data2.tar.gz
-    #     mv ./download/data2/* ./download/dien
-    # fi
+    if [[ ! -f ./download/data2.tar.gz ]]; then
+        wget -P ./download https://zenodo.org/record/3463683/files/data2.tar.gz
+        tar -C ./download/ -jxvf ./download/data2.tar.gz
+        mv ./download/data2/* ./download/dien
+    fi
     
-    # if [[ ! -d ./download/models ]]; then
-    #     git clone https://github.com/IntelAI/models.git -b v2.5.0 ./download/models
-    # fi
+    if [[ ! -d ./download/models ]]; then
+        git clone https://github.com/IntelAI/models.git -b v2.5.0 ./download/models
+    fi
     
-    # virt-customize -a /tmp/${GUEST_IMG} \
-    #     --copy-in ./download/dien_bf16_pretrained_opt_model.pb:/root \
-    #     --copy-in ./download/dien_fp32_static_rnn_graph.pb:/root \
-    #     --copy-in ./download/dien:/root \
-    #     --copy-in ./download/models:/root \
-    # 3. download container image
-    # virt-customize -a /tmp/${GUEST_IMG} \
-    #     --run-command "sed -i 's/\[Service\]/\[Service\]\nEnvironment=\"HTTPS_PROXY=http:\/\/child-prc.intel.com:913\/\"/g' /usr/lib/systemd/system/docker.service" \
-    #     --run-command "sed -i 's/\[Service\]/\[Service\]\nEnvironment=\"HTTP_PROXY=http:\/\/child-prc.intel.com:913\/\"/g' /usr/lib/systemd/system/docker.service" \
-    #     --run-command "sed -i 's/\[Service\]/\[Service\]\nEnvironment=\"NO_PROXY=localhost,127.0.0.1,.intel.com\"/g' /usr/lib/systemd/system/docker.service"
-    # enable_root_ssh_login
-    # ../../../start-qemu.sh -i /tmp/${GUEST_IMG} -b grub -t legacy & 
-    # sleep 10
-    ssh -p 10026 root@localhost -o ConnectTimeout=30 "docker pull nginx:latest && docker pull redis:latest && intel/intel-optimized-tensorflow-avx512:2.8.0"
+    virt-customize -a /tmp/${GUEST_IMG} \
+        --copy-in ./download/dien_bf16_pretrained_opt_model.pb:/root \
+        --copy-in ./download/dien_fp32_static_rnn_graph.pb:/root \
+        --copy-in ./download/dien:/root \
+        --copy-in ./download/models:/root 
+    
+    #3. download container image
+    virt-customize -a /tmp/${GUEST_IMG} \
+        --run-command "sed -i 's/\[Service\]/\[Service\]\nEnvironment=\"HTTPS_PROXY=http:\/\/child-prc.intel.com:913\/\"/g' /usr/lib/systemd/system/docker.service" \
+        --run-command "sed -i 's/\[Service\]/\[Service\]\nEnvironment=\"HTTP_PROXY=http:\/\/child-prc.intel.com:913\/\"/g' /usr/lib/systemd/system/docker.service" \
+        --run-command "sed -i 's/\[Service\]/\[Service\]\nEnvironment=\"NO_PROXY=localhost,127.0.0.1,.intel.com\"/g' /usr/lib/systemd/system/docker.service"
+    
+    launch guest vm
+    ../../../start-qemu.sh -i /tmp/${GUEST_IMG} -b grub -t legacy & 
+    GUEST_PARENT_PID=$!
+    sleep 15
+
+    yes yes | ssh-keygen -R [localhost]:10026
+    ssh -p 10026 root@localhost -o ConnectTimeout=30 "docker pull nginx:latest && \
+        docker pull redis:latest && \
+        docker pull intel/intel-optimized-tensorflow-avx512:2.8.0 && \
+        docker pull intel/image-recognition:tf-latest-mobilenet-v1-fp32-inference"
+    
+    # close guest vm
+    GUEST_PID=$(pgrep -P $GUEST_PARENT_PID)
+    kill -9 $GUEST_PID
+
+    4. ltp
+    if [[ ! -d ./download/ltp ]]; then
+        git clone https://github.com/linux-test-project/ltp.git ./download/ltp
+    fi
+    virt-customize -a /tmp/${GUEST_IMG} \
+        --copy-in ./download/ltp:/root
+    virt-customize -a /tmp/${GUEST_IMG} \
+        --run-command "cd /root/ltp && make autotools && ./configure && make && make install" 
+    
+    #5. bombardier
+    virt-customize -a /tmp/${GUEST_IMG} \
+        --run-command "GOPATH=/root/go /usr/local/go/bin/go install github.com/codesenberg/bombardier@latest"
+
+    #6. redis server
+    virt-customize -a /tmp/${GUEST_IMG} \
+        --run ./cloud-init-data/init-scripts/test-suite-install-redis.sh
     
 }
 
@@ -395,33 +460,33 @@ fi
 
 #==================== start ====================
 
-# 1. basic image
-create_guest_image
-config_guest_env
-resize_guest_image
+# # 1. basic image
+# create_guest_image
+# config_guest_env
+# resize_guest_image
 
-# 2. create multi-part user-data
-create_user_data
+# # 2. create multi-part user-data
+# create_user_data
 
-# 3. repo handle
-prepare_repos
+# # 3. repo handle
+# prepare_repos
 
-# 4. vm instance init
-config_cloud_init
+# # # 4. vm instance init
+# config_cloud_init
 
-# 5. install packages
-# 5.1 basic
-install_basic_packages
-install_tdx_measure_tool
+# # # 5. config
+# configurate_vm
 
-# 5.2 test suite
-# install_test_suite
+# # # 6. install packages
+# # # 6.1 basic
+# install_basic_packages
+# install_tdx_measure_tool
 
-# 6. config
-configurate_vm
+# 6.2 test suite
+install_test_suite
 
-# 7. clean
-cleanup
+# # 7. clean
+# cleanup
 
 ok "Please get the output TDX guest image file at /tmp/${GUEST_IMG}"
 

@@ -1,0 +1,30 @@
+#cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [no_replace, recurse_list]
+
+packages:
+  - ca-certificates
+  - curl 
+  - gnupg
+  - qemu-guest-agent
+  - cpuid
+  - make 
+  - pkgconf 
+  - autoconf 
+  - automake 
+  - bison 
+  - flex 
+  - m4 
+  - libc6-dev
+  - redis-tools
+  - lsb-release
+  - gpg
+
+apt:
+  preserve_sources_list: true
+
+
+

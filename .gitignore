@@ -35,8 +35,9 @@ build/ubuntu-22.04/intel-mvp-tdx-qemu-kvm/patches/
 build/ubuntu-22.04/intel-mvp-tdx-qemu-kvm/*.ddeb
 build/ubuntu-22.04/intel-mvp-vtpm-td/vtpm-td/
 
-build/ubuntu-22.04/guest-image/guest-builder/target/
-build/ubuntu-22.04/guest-image/guest-builder/Cargo.lock
+
 build/ubuntu-22.04/guest-image/tdx-guest-ubuntu-22.04.qcow2.bak
 build/ubuntu-22.04/guest-image/cloud-init-data/*.conf
 build/ubuntu-22.04/guest-image/download
+build/ubuntu-22.04/guest-image/cloud-init-data/cloud-config-base.yaml
+build/ubuntu-22.04/guest-image/cloud-init-data/cloud-config-test-suite.yaml
