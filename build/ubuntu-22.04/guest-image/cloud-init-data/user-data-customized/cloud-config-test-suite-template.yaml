@@ -5,11 +5,14 @@ merge_how:
  - name: dict
    settings: [no_replace, recurse_list]
 
-# packages:
-#   - ca-certificates
-#   - curl 
-#   - gnupg
-#   - qemu-guest-agent
+packages:
+  - ca-certificates
+  - curl 
+  - gnupg
+  - qemu-guest-agent
+
+apt:
+  preserve_sources_list: true
 
 
 
