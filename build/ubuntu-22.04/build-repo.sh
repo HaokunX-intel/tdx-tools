@@ -69,6 +69,7 @@ build_shim () {
     [[ -f $STATUS_DIR/shim.done ]] || ./build.sh 2>&1 | tee "$LOG_DIR"/shim.log
     touch "$STATUS_DIR"/shim.done
     cp shim_*_amd64.deb ../$GUEST_REPO/more/
+    cp *.changes *.buildinfo ../$GUEST_REPO/more/
     popd
 }
 
@@ -78,6 +79,7 @@ build_grub () {
     [[ -f $STATUS_DIR/grub.done ]] || ./build.sh 2>&1 | tee "$LOG_DIR"/grub2.log
     touch "$STATUS_DIR"/grub.done
     cp grub-efi-*_amd64.deb  ../$GUEST_REPO/more/
+    cp *.changes *.buildinfo ../$GUEST_REPO/more/
     popd
 
     # Uninstall to avoid confilcts with libnvpair-dev
@@ -89,7 +91,9 @@ build_kernel () {
     [[ -f $STATUS_DIR/kernel.done ]] || ./build.sh 2>&1 | tee "$LOG_DIR"/kernel.log
     touch "$STATUS_DIR"/kernel.done
     cp linux-*6.2.16*.deb ../$GUEST_REPO/more/
+    cp *.changes *.buildinfo ../$GUEST_REPO/more/
     cp linux-*6.2.16*.deb ../$HOST_REPO/more/
+    cp *.changes *.buildinfo ../$HOST_REPO/more/
     popd
 }
 
@@ -98,6 +102,7 @@ build_qemu () {
     [[ -f $STATUS_DIR/qemu.done ]] || ./build.sh 2>&1 | tee "$LOG_DIR"/qemu.log
     touch "$STATUS_DIR"/qemu.done
     cp qemu*7.2.0*.deb *.ddeb ../$HOST_REPO/more/
+    cp *.changes *.buildinfo ../$HOST_REPO/more/
     popd
 }
 
@@ -106,6 +111,7 @@ build_tdvf () {
     [[ -f $STATUS_DIR/ovmf.done ]] || ./build.sh 2>&1 | tee "$LOG_DIR"/ovmf.log
     touch "$STATUS_DIR"/ovmf.done
     cp ovmf_*_all.deb ../$HOST_REPO/more/
+    cp *.changes *.buildinfo ../$HOST_REPO/more/
     popd
 }
 
@@ -114,6 +120,7 @@ build_libvirt () {
     [[ -f $STATUS_DIR/libvirt.done ]] || ./build.sh 2>&1 | tee "$LOG_DIR"/libvirt.log
     touch "$STATUS_DIR"/libvirt.done
     cp libvirt*8.6.0*.deb libnss*_amd64.deb *.ddeb ../$HOST_REPO/more/
+    cp *.changes *.buildinfo ../$HOST_REPO/more/
     popd
 }
 
@@ -122,6 +129,7 @@ build_migtd () {
     [[ -f $STATUS_DIR/migtd.done ]] || ./build.sh 2>&1 | tee "$LOG_DIR"/migtd.log
     touch "$STATUS_DIR"/migtd.done
     cp td-migration_*_amd64.deb ../$HOST_REPO/more/
+    cp *.changes *.buildinfo ../$HOST_REPO/more/
     popd
 }
 
@@ -130,22 +138,72 @@ build_vtpm-td () {
     [[ -f $STATUS_DIR/vtpm-td.done ]] || ./build.sh 2>&1 | tee "$LOG_DIR"/vtpm-td.log
     touch "$STATUS_DIR"/vtpm-td.done
     cp vtpm-td_*_amd64.deb ../$HOST_REPO/more/
+    cp *.changes *.buildinfo ../$HOST_REPO/more/
+    popd
+}
+
+
+_build_guest_repo () {
+    
+    pushd $GUEST_REPO
+    mkdir -p mini-dinstall
+    
+    mv ./more ./mini-dinstall/incoming
+    cur=$(realpath .)
+
+    content='[DEFAULT] 
+archive_style = simple-subdir
+archivedir = '$cur'
+architectures = all, amd64
+dynamic_reindex = 1
+verify_sigs = 0
+incoming_permissions = 0775
+generate_release = 1
+mail_on_success = false
+release_description = Linux MVP Stacks Packages for Ubuntu
+
+[jammy]'
+    
+    echo $content > ./mini-dinstall/mini-dinstall.conf
+
+    mini-dinstall -b -q -c ./mini-dinstall/mini-dinstall.conf
+
+    rm -rf mini-dinstall
+    popd
+}
+
+_build_host_repo () {
+    
+    pushd $HOST_REPO
+    mkdir -p mini-dinstall
+    
+    mv ./more ./mini-dinstall/incoming
+    cur=$(realpath .)
+
+    content='[DEFAULT] 
+archive_style = simple-subdir
+archivedir = '$cur'
+architectures = all, amd64
+dynamic_reindex = 1
+verify_sigs = 0
+incoming_permissions = 0775
+generate_release = 1
+mail_on_success = false
+release_description = Linux MVP Stacks Packages for Ubuntu
+
+[jammy]'
+    
+    echo $content > ./mini-dinstall/mini-dinstall.conf
+
+    mini-dinstall -b -q -c ./mini-dinstall/mini-dinstall.conf
+
+    rm -rf mini-dinstall
     popd
 }
 
 build_repo () {
-    # move necessary packages to repo root directory.
-    # so the local file installation keeps same as before.
-    pushd $GUEST_REPO/more
-    mv $GUEST_DEFAULT_PKG ../
-    popd
-
-    pushd $HOST_REPO/more
-    mv $HOST_DEFAULT_PKG ../
-    popd
-
-    pushd $HOST_REPO && dpkg-scanpackages . > Packages && popd
-    pushd $GUEST_REPO && dpkg-scanpackages . > Packages && popd
+    _build_guest_repo
+    _build_host_repo
 }
 
 build_check "$1"
