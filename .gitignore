@@ -43,3 +43,11 @@ build/ubuntu-22.04/guest-image/cloud-init-data/cloud-config-base.yaml
 build/ubuntu-22.04/guest-image/cloud-init-data/cloud-config-test-suite.yaml
 build/ubuntu-22.04/guest-image/cloud-init-data/local
 build/ubuntu-22.04/guest-image/cloud-init-data/cloud-config-example.yaml
+
+build/rhel-9/intel-mvp-tdx-kernel/linux-tdx-kernel
+build/.bash_history
+build/.viminfo
+build/rhel-9/guest-image/*.iso*
+build/rhel-9/guest-image/cloud-init-data/user-data
+build/rhel-9/guest-image/cloud-init-data/cloud-config-base.yaml
+build/rhel-9/guest-image/cloud-init-data/user-data
