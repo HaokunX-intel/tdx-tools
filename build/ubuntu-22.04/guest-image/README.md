@@ -166,8 +166,6 @@ sudo ./create-ubuntu-image.sh -f -r ${GUEST_REPO} -x ./cloud-init-data/init-scri
 ```
 
 
-
-
 6.2 Customize scripts before or after cloud-init
 
 Given that some works can be executed before cloud-init or after cloud-init, the option `-i` and the option `-d` provide hooks there respectively. The scripts you provide via `-i` and `-d` will be executed by the tool `virt-customize` with shell interpreter `/bin/sh`. Unfortunately, the bash syntax is not compatible with sh completely, make sure your scripts can be explained by the sh. 
@@ -189,6 +187,14 @@ The `virt-customize` is a powerful tool, but it does not launch a real vm, there
 Please refer [cloud-init](https://cloudinit.readthedocs.io/en/latest/), [user-data](https://cloudinit.readthedocs.io/en/latest/explanation/format.html#) and [cloud-config](https://cloudinit.readthedocs.io/en/latest/reference/modules.html) to get more info about `cloud-init`. Besides, two templates [cloud-config-base-template.yaml](build/ubuntu-22.04/guest-image/cloud-init-data/user-data-basic/cloud-config-base-template.yaml) and [cloud-config-test-suite-template.yaml](build/ubuntu-22.04/guest-image/cloud-init-data/user-data-customized/cloud-config-test-suite-template.yaml) are direct examples.
 
 Refer [virt-customize](https://www.libguestfs.org/virt-customize.1.html) to learn more about it. 
+
+6.3 Build a guest image with amber-cli
+
+```
+sudo ./create-ubuntu-image.sh -f -r ../guest_repo/ -i ./cloud-init-data/init-scripts/install-dcap.sh -g ./cloud-init-data/user-data-customized/cloud-config-amber-cli.yaml 
+```
+
+Given that the amber-cli depends on the libraries in the dcap package, the script `./cloud-init-data/init-scripts/install-dcap.sh` installs dcap before cloud-init being invoked.
 
 
 

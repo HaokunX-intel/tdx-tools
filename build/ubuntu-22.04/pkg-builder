@@ -10,6 +10,7 @@ SCRIPT=""
 usage() {
     cat << EOM
 Usage: $(basename "$0") [OPTION]...
+  -s                        Specify the path to the script
   -e                        Using existing building container image
   -h                        Show this help
 EOM

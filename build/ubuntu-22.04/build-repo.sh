@@ -57,10 +57,6 @@ build_amber-cli () {
     pushd intel-mvp-amber-cli
     [[ -f $STATUS_DIR/amber-cli.done ]] || ./build.sh 2>&1 | tee "$LOG_DIR"/amber-cli.log
     touch $STATUS_DIR/amber-cli.done
-    mkdir -p ../extra-debs
-    cp sgx_debian_local_repo/pool/main/libt/libtdx-attest/libtdx-attest-dev_*_amd64.deb \
-            sgx_debian_local_repo/pool/main/libt/libtdx-attest/libtdx-attest_*_amd64.deb \
-            amber-cli_*_amd64.deb ../extra-debs/
     popd
 }
 
@@ -105,6 +101,10 @@ _build_guest_repo () {
     pushd intel-mvp-tdx-kernel
     cp *.build *.buildinfo *.changes *.tar.gz *.deb ../$GUEST_REPO/incoming/
     popd
+
+    pushd intel-mvp-amber-cli
+    cp *.build *.buildinfo *.changes *.deb ../$GUEST_REPO/incoming/
+    popd
     
     pushd $GUEST_REPO
 
@@ -121,15 +121,15 @@ _build_host_repo () {
     popd    
 
     pushd intel-mvp-tdx-qemu-kvm
-    cp *.build *.buildinfo *.changes *deb *.ddeb ../$HOST_REPO/incoming/
+    cp *.build *.buildinfo *.changes *.deb *.ddeb ../$HOST_REPO/incoming/
     popd
 
     pushd intel-mvp-ovmf
-    cp *.build *.buildinfo *.changes *deb ../$HOST_REPO/incoming/
+    cp *.build *.buildinfo *.changes *.deb ../$HOST_REPO/incoming/
     popd    
 
     pushd intel-mvp-tdx-libvirt
-    cp *.build *.buildinfo *.changes *.tar.xz *deb *.ddeb ../$HOST_REPO/incoming/
+    cp *.build *.buildinfo *.changes *.deb *.ddeb ../$HOST_REPO/incoming/
     popd
 
     pushd $HOST_REPO
@@ -147,10 +147,11 @@ build_check "$1"
 pushd "$THIS_DIR"
 
 build_kernel
-build_amber-cli
 $GUEST_ONLY || build_qemu
 $GUEST_ONLY || build_tdvf
 $GUEST_ONLY || build_libvirt
+
+build_amber-cli
 
 build_repo
 

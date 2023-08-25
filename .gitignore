@@ -41,3 +41,10 @@ build/ubuntu-22.04/guest-image/cloud-init-data/local
 build/ubuntu-22.04/guest-image/cloud-init-data/cloud-config-example.yaml
 build/.bash_history
 build/.viminfo
+
+build/ubuntu-22.04/intel-mvp-amber-cli/sgx_debian_local_repo.tgz
+build/ubuntu-22.04/intel-mvp-amber-cli/sgx_debian_local_repo/
+build/ubuntu-22.04/intel-mvp-ovmf/mvp-ovmf-stable202302/
+build/ubuntu-22.04/intel-mvp-tdx-kernel/mvp-tdx-kernel-v5.19.17/
+build/ubuntu-22.04/intel-mvp-tdx-qemu-kvm/mvp-tdx-qemu-7.0.50/
+build/ubuntu-22.04/intel-mvp-amber-cli/amber-cli/
