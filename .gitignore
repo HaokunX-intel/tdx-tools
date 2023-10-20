@@ -60,3 +60,9 @@ build/rhel-9/guest-image/cloud-init-data/cloud-config-base.yaml
 build/rhel-9/guest-image/cloud-init-data/user-data
 build/rhel-9/guest-image/cloud-init-data/meta-data
 build/rhel-9/guest-image/local
+utils/ek-tool/Cargo.lock
+utils/ek-tool/target/
+utils/ek-tool/App/App.o
+utils/ek-tool/App/Enclave_u.o
+utils/ek-tool/Lib/libenclave_untrusted.a
+utils/ek-tool/local
