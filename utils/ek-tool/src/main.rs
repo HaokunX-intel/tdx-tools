@@ -1,3 +1,5 @@
+use std::{fs, io::Write};
+
 use anyhow::{bail, Ok};
 use x509_parser::{oid_registry::{asn1_rs::oid, Oid}, prelude::X509Certificate};
 use ring::digest::{self, digest};
@@ -18,6 +20,7 @@ use cert::{
 use quote::ecdsa_quote_verification;
 
 const CA_CERT_BASE64: &str = "ca-cert-base64";
+const EK_CERT_OUT: &str = "ek-cert-out";
 
 const QUOTE_OID: Oid<'_> = oid!(2.16.840.1.113741.1.5.5.2.2);
 const SHA384_BYTE_LEN: usize = 48;
@@ -83,6 +86,12 @@ fn main() -> anyhow::Result<()> {
                 .long(CA_CERT_BASE64)
                 .help("Verify the provided ca certification")   
         )
+        .arg(
+            Arg::new(EK_CERT_OUT)
+                .short('e')
+                .long(EK_CERT_OUT)
+                .help("Save th ek certification to path")   
+        )
         .get_matches();
     if let Some(encoded) = matches.get_one::<String>(CA_CERT_BASE64) {
         let ca_cert_der = general_purpose::STANDARD.decode(encoded)?;
@@ -101,7 +110,14 @@ fn main() -> anyhow::Result<()> {
     // 1. verify ca
     let ca_cert_der = retrieve_ca_cert_der(&cert_meta)?;
     let ca_cert = verify_ca(&ca_cert_der)?;
-
+    #[cfg(feature="DEBUG")]
+    {
+        let mut ca_file = fs::File::create("ca_base64")?;
+        let ca_base64 = general_purpose::STANDARD.encode(&ca_cert_der);
+        ca_file.write_all(ca_base64.as_bytes())?;
+        println!("SUCCESS: CA Cert Base64 Saved: ca_base64");
+    }
+    
     // 2. verify ek
     let ca_pub = ca_cert.public_key();
     let ek_cert_der = retrieve_ek_cert_der(&cert_meta)?;
@@ -117,6 +133,14 @@ fn main() -> anyhow::Result<()> {
     let ek_pub_raw = retrieve_raw_public_key(ek_pub)?;
     let ek_pub_base64: String = general_purpose::STANDARD.encode(ek_pub_raw);
     println!("ek_pub_base64: {:}", ek_pub_base64);
+    
+    // 4. save ek
+    if let Some(ek_path) = matches.get_one::<String>(EK_CERT_OUT) {
+        let mut ek_file = fs::File::create(ek_path)?;
+        ek_file.write_all(&ek_cert_der)?;
+        #[cfg(feature="DEBUG")]
+            println!("SUCCESS: EK Cert Base64 Saved: {:}", ek_path);
+    }
     
     Ok(())
 }
