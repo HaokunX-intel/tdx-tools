@@ -7,7 +7,10 @@ use crate::utils::run_command;
 
 const TPMNVREAD_PUBLIC_CMD : &str= "tpm2_nvreadpublic";
 const TPM2_NVREAD_CMD: &str="tpm2_nvread";
-
+const TPM2_CREATE_AK_CMD: &str="tpm2_createak";
+const TPM2_QUOTE_CMD: &str="tpm2_quote";
+const TPM2_CHECKQUOTE_CMD: &str="tpm2_checkquote";
+const TPM2_READ_PUBLIC_CMD: &str="tpm2_readpublic";
 
 pub fn run_tpmnvread_public(args: Option<Vec<String>>) -> io::Result<Output> {
     run_command(TPMNVREAD_PUBLIC_CMD.to_string(), args)
@@ -44,3 +47,18 @@ pub fn run_tpm2_nvread(args: Option<Vec<String>>) -> io::Result<Output> {
     run_command(TPM2_NVREAD_CMD.to_string(), args)
 }
 
+pub fn run_tpm2_create_ak(args: Option<Vec<String>>) -> io::Result<Output> {
+    run_command(TPM2_CREATE_AK_CMD.to_string(), args)
+}
+
+pub fn run_tpm2_quote(args: Option<Vec<String>>) -> io::Result<Output> {
+    run_command(TPM2_QUOTE_CMD.to_string(), args)
+}
+
+pub fn run_tpm2_checkquote(args: Option<Vec<String>>) -> io::Result<Output> {
+    run_command(TPM2_CHECKQUOTE_CMD.to_string(), args)
+}
+
+pub fn run_tpm2_read_public(args: Option<Vec<String>>) -> io::Result<Output> {
+    run_command(TPM2_READ_PUBLIC_CMD.to_string(), args)
+}

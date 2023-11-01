@@ -6,7 +6,7 @@ use x509_parser::{prelude::{X509Certificate, FromDer}, nom::AsBytes, public_key:
 use crate::tpm2_tools::{self, run_tpm2_nvread, run_tpmnvread_public};
 
 const INDEX_PREFIX: &str = "0x1c0010";
-const EK_INDEX: &str = "0x01c00016";
+const EK_CERT_INDEX: &str = "0x01c00016";
 
 pub struct CertMeta {
     pub seg_sizes: Vec<i32>
@@ -64,7 +64,7 @@ pub fn retrieve_ek_cert_der(cert_meta: &CertMeta) -> anyhow::Result<Vec<u8>> {
         "--hierarchy".to_string(), "owner".to_string(),
         "--size".to_string(), format!("{:}", cert_meta.seg_sizes[0]), 
         "--output".to_string(), filename.clone(),
-        format!("{:}", EK_INDEX)];
+        format!("{:}", EK_CERT_INDEX)];
     let output = run_tpm2_nvread(Some(args))?;
     if !output.status.success() {
         println!("Err: {:?}", String::from_utf8(output.stderr));

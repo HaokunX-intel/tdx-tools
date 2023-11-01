@@ -7,3 +7,4 @@ pub fn run_command(cmd: String, args: Option<Vec<String>>) -> io::Result<Output>
     } 
     c.output()
 }
+

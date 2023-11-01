@@ -9,7 +9,8 @@ use clap::{command, Arg};
 mod utils;
 mod tpm2_tools;
 mod cert;
-mod quote;
+mod tdx_quote;
+mod tpm_quote;
 
 use cert::{
     retrieve_ca_cert_der, 
@@ -17,7 +18,9 @@ use cert::{
     from_der_file, 
     retrieve_cert_meta, 
     retrieve_raw_public_key};
-use quote::ecdsa_quote_verification;
+use tdx_quote::ecdsa_quote_verification;
+
+use tpm_quote::verify_tpm_quote;
 
 const CA_CERT_BASE64: &str = "ca-cert-base64";
 const EK_CERT_OUT: &str = "ek-cert-out";
@@ -78,7 +81,6 @@ fn verify_ca<'a>(ca_cert_der: &'a [u8]) -> anyhow::Result<X509Certificate<'a>> {
 }
 
 fn main() -> anyhow::Result<()> {
-
     let matches = command!()
         .arg(
             Arg::new(CA_CERT_BASE64)
@@ -107,9 +109,11 @@ fn main() -> anyhow::Result<()> {
     if cert_meta.seg_sizes.len() < 2 {
         bail!("Invalide indices length {:} < 2!", cert_meta.seg_sizes.len())
     }
+    
     // 1. verify ca
     let ca_cert_der = retrieve_ca_cert_der(&cert_meta)?;
     let ca_cert = verify_ca(&ca_cert_der)?;
+    println!("ca_cert_verification_result: true");
     #[cfg(feature="DEBUG")]
     {
         let mut ca_file = fs::File::create("ca_base64")?;
@@ -125,22 +129,30 @@ fn main() -> anyhow::Result<()> {
     #[cfg(feature="DEBUG")]
     println!("SUCCESS: Cert Retrieved");
     ek_cert.verify_signature(Some(ca_pub))?;
+    println!("ek_cert_verification_result: true");
     #[cfg(feature="DEBUG")]
     println!("SUCCESS: EK Cert Verified");
 
-    // 3. output ek
-    let ek_pub = ek_cert.public_key();
-    let ek_pub_raw = retrieve_raw_public_key(ek_pub)?;
-    let ek_pub_base64: String = general_purpose::STANDARD.encode(ek_pub_raw);
-    println!("ek_pub_base64: {:}", ek_pub_base64);
-    
-    // 4. save ek
+    // 3. Verify TPM Quote
+    verify_tpm_quote()?;
+    println!("tpm_quote_verification_result: true");
+
+    // 4. options
     if let Some(ek_path) = matches.get_one::<String>(EK_CERT_OUT) {
         let mut ek_file = fs::File::create(ek_path)?;
         ek_file.write_all(&ek_cert_der)?;
         #[cfg(feature="DEBUG")]
-            println!("SUCCESS: EK Cert Base64 Saved: {:}", ek_path);
+        println!("SUCCESS: EK Cert Base64 Saved: {:}", ek_path);
     }
-    
+
+    // 5. debug
+    #[cfg(feature="DEBUG")]
+    {
+        let ek_pub = ek_cert.public_key();
+        let ek_pub_raw = retrieve_raw_public_key(ek_pub)?;
+        let ek_pub_base64: String = general_purpose::STANDARD.encode(ek_pub_raw);
+        println!("ek_pub_base64: {:}", ek_pub_base64);
+    }
+
     Ok(())
 }
